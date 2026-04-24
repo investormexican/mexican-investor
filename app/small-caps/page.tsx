@@ -196,10 +196,10 @@ export default function SmallCaps() {
                     }}>
                       Name
                     </th>
-                    {['Fecha', 'Tipo', 'Estatus', 'Sector', 'Entrada', 'Actual', 'Rendimiento'].map(h => (
+                    {['Date', 'Type', 'Status', 'Sector', 'Coverage Price', 'Actual', 'Performance'].map(h => (
                       <th key={h} style={{
                         padding: '14px 16px',
-                        textAlign: h === 'Rendimiento' || h === 'Entrada' || h === 'Actual' ? 'right' : 'left',
+                        textAlign: h === 'Performance' || h === 'Coverage Price' || h === 'Actual' ? 'right' : 'left',
                         fontSize: 11,
                         fontWeight: 700,
                         letterSpacing: 2,
