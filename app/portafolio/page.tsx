@@ -1,377 +1,456 @@
 'use client'
-
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { useRouter, usePathname } from 'next/navigation'
-import Link from 'next/link'
-
+import Navbar from '@/components/Navbar'
+ 
 const C = {
-  bg:        '#EEE7D7',
-  bgCard:    '#E5DCC8',
-  bgRow:     '#EEE7D7',
-  bgRowAlt:  '#E8E1CE',
-  bgRowHover:'#DDD5C0',
-  border:    '#C9BFA8',
-  text:      '#244143',
-  textDim:   '#5a7a6e',
-  green:     '#1a5c3a',
-  greenBg:   'rgba(26,92,58,0.10)',
-  red:       '#8b2020',
-  redBg:     'rgba(139,32,32,0.10)',
-  neutral:   '#6b7280',
-  accent:    '#244143',
-  sans:      "var(--font-dm-sans), 'Helvetica Neue', sans-serif",
-  serif:     "'Playfair Display', Georgia, serif",
+  bg: '#EEE7D7',
+  bgCard: '#E5DCC8',
+  bgRow: '#EEE7D7',
+  bgRowAlt: '#E8E1CE',
+  bgRowHover: '#DDD5C0',
+  border: '#C9BFA8',
+  text: '#244143',
+  textDim: '#5a7a6e',
+  green: '#1a5c3a',
+  greenBg: 'rgba(26,92,58,0.12)',
+  yellow: '#7a5c00',
+  yellowBg: 'rgba(180,140,0,0.12)',
+  red: '#8b2020',
+  redBg: 'rgba(139,32,32,0.12)',
+  neutral: '#6b7280',
+  accent: '#244143',
+  sans: "var(--font-dm-sans), 'Helvetica Neue', sans-serif",
 }
-
-function Navbar() {
-  const pathname = usePathname()
-
-  return (
-    <nav style={{
-      background: C.accent,
-      borderBottom: `1px solid #1a3130`,
-      padding: '0 48px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      height: 64,
-      position: 'sticky',
-      top: 0,
-      zIndex: 100,
-    }}>
-      <Link href="/" style={{ textDecoration: 'none' }}>
-      <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 10,
-        }}>
-          <img
-          src="/sombrero.png"
-          alt="logo"
-          style={{
-            height: 28,
-            width: 'auto',
-          }}
-        />
-        <span style={{
-          color: '#EEE7D7',
-          fontFamily: C.sans,
-          fontSize: 30,
-          letterSpacing: 2,
-          fontWeight: 700,
-        }}>
-          Mexican Investor
-        </span>
-        </div>
-      </Link>
-
-      <div style={{ display: 'flex', gap: 32 }}>
-        {[
-          { href: '/small-caps', label: '3 Small-Caps' },
-          { href: '/portafolio', label: 'Portafolio' },
-        ].map(({ href, label }) => (
-          <Link key={href} href={href} style={{
-            color: pathname === href ? '#EEE7D7' : '#a0b8b4',
-            borderBottom: pathname === href ? '2px solid #EEE7D7' : '2px solid transparent',
-            textDecoration: 'none',
-            fontSize: 15,
-            letterSpacing: 2,
-            textTransform: 'uppercase',
-            fontWeight: 600,
-            paddingBottom: 4,
-            fontFamily: C.sans,
-          }}>
-            {label}
-          </Link>
-        ))}
-      </div>
-    </nav>
-  )
+ 
+/* ── Responsive hook ─────────────────────────────────────────────── */
+function useIsMobile(bp = 640) {
+  const [v, setV] = useState(false)
+  useEffect(() => {
+    const fn = () => setV(window.innerWidth < bp)
+    fn()
+    window.addEventListener('resize', fn)
+    return () => window.removeEventListener('resize', fn)
+  }, [bp])
+  return v
 }
-
-function StatCard({ label, value, color }: { label: string; value: string; color?: string }) {
-  return (
-    <div style={{
-      background: C.bgCard,
-      border: `1px solid ${C.border}`,
-      borderRadius: 10,
-      padding: '20px 28px',
-      minWidth: 160,
-    }}>
-      <div style={{
-        color: C.textDim,
-        fontSize: 15,
-        letterSpacing: 2,
-        textTransform: 'uppercase',
-        marginBottom: 8,
-        fontFamily: C.sans,
-        fontWeight: 600,
-      }}>
-        {label}
-      </div>
-      <div style={{
-        color: color ?? C.text,
-        fontSize: 15,
-        fontFamily: C.sans,
-        fontWeight: 700,
-      }}>
-        {value}
-      </div>
-    </div>
-  )
+ 
+/* ── Tipos de cambio soportados ──────────────────────────────────── */
+type Currency = 'USD' | 'CAD' | 'AUD' | 'EUR' | 'PLN' | 'MXN'
+ 
+const FX_TICKERS: Record<Exclude<Currency, 'USD'>, string> = {
+  CAD: 'CADUSD=X',
+  AUD: 'AUDUSD=X',
+  EUR: 'EURUSD=X',
+  PLN: 'PLNUSD=X',
+  MXN: 'MXNUSD=X',
 }
-
-function PerformerCard({ title, items, isWinner }: {
-  title: string
-  items: any[]
-  isWinner: boolean
-}) {
-  return (
-    <div style={{
-      background: C.bgCard,
-      border: `1px solid ${C.border}`,
-      borderRadius: 10,
-      padding: '20px 24px',
-      minWidth: 220,
-    }}>
-      <div style={{
-        color: C.textDim,
-        fontSize: 15,
-        letterSpacing: 2,
-        textTransform: 'uppercase',
-        marginBottom: 14,
-        fontFamily: C.sans,
-        fontWeight: 600,
-      }}>
-        {title}
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {items.map((e) => (
-          <div key={e.ticker} style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            gap: 16,
-          }}>
-            <span style={{
-              color: C.text,
-              fontFamily: C.sans,
-              fontSize: 12,
-              fontWeight: 700,
-            }}>
-              {e.ticker}
-            </span>
-            <span style={{
-              color: isWinner ? C.green : C.red,
-              background: isWinner ? C.greenBg : C.redBg,
-              padding: '2px 10px',
-              borderRadius: 20,
-              fontSize: 12,
-              fontFamily: C.sans,
-              fontWeight: 600,
-            }}>
-              {e.rendimiento > 0 ? '+' : ''}{e.rendimiento.toFixed(2)}%
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
+ 
+const FX_FALLBACK: Record<Exclude<Currency, 'USD'>, number> = {
+  CAD: 0.73,
+  AUD: 0.65,
+  EUR: 1.08,
+  PLN: 0.25,
+  MXN: 0.058,
 }
-
+ 
+/* ── API helpers ─────────────────────────────────────────────────── */
 async function getPrecio(ticker: string): Promise<number | null> {
   try {
-    const res = await fetch(`/api/precio?ticker=${ticker}`)
+    const res = await fetch('/api/precio?ticker=' + encodeURIComponent(ticker))
     const data = await res.json()
     return data.precio ?? null
   } catch {
     return null
   }
 }
-
+ 
+/**
+ * Obtiene tipos de cambio a USD en tiempo real desde Yahoo Finance.
+ * Fallback a valores aproximados si la llamada falla.
+ */
+async function getExchangeRates(): Promise<Record<string, number>> {
+  const entries = Object.entries(FX_TICKERS) as [Exclude<Currency, 'USD'>, string][]
+  const results = await Promise.all(
+    entries.map(async ([currency, yahooTicker]) => {
+      try {
+        const res = await fetch('/api/precio?ticker=' + encodeURIComponent(yahooTicker))
+        const data = await res.json()
+        return [currency, data.precio ?? FX_FALLBACK[currency]] as const
+      } catch {
+        return [currency, FX_FALLBACK[currency]] as const
+      }
+    })
+  )
+  return Object.fromEntries(results)
+}
+ 
+/* ── Convicción badge ────────────────────────────────────────────── */
+function ConviccionBadge({ value }: { value: string }) {
+  const v = (value ?? '').toLowerCase()
+ 
+  let color: string
+  let bg: string
+  let label: string
+ 
+  if (v === 'high') {
+    color = C.green
+    bg = C.greenBg
+    label = 'High'
+  } else if (v === 'medium') {
+    color = C.yellow
+    bg = C.yellowBg
+    label = 'Medium'
+  } else if (v === 'low') {
+    color = C.red
+    bg = C.redBg
+    label = 'Low'
+  } else {
+    color = C.neutral
+    bg = 'transparent'
+    label = value ?? '—'
+  }
+ 
+  return (
+    <span
+      style={{
+        display: 'inline-block',
+        padding: '3px 10px',
+        borderRadius: 20,
+        fontSize: 12,
+        fontWeight: 700,
+        letterSpacing: 0.5,
+        color,
+        background: bg,
+        border: `1px solid ${color}33`,
+        whiteSpace: 'nowrap',
+      }}
+    >
+      {label}
+    </span>
+  )
+}
+ 
+/* ── Page ────────────────────────────────────────────────────────── */
 export default function Portafolio() {
+  const isMobile = useIsMobile()
   const [rows, setRows] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const router = useRouter()
-
+  const [hoveredTicker, setHoveredTicker] = useState<string | null>(null)
+  const [fx, setFx] = useState<Record<string, number> | null>(null)
+ 
   useEffect(() => {
     async function cargar() {
-      const { data } = await supabase.from('portafolio').select('*')
-      if (!data) { setLoading(false); return }
-
+      // 1. Obtener tipos de cambio y datos de Supabase en paralelo
+      const [fxRates, { data }] = await Promise.all([
+        getExchangeRates(),
+        supabase.from('portafolio').select('*'),
+      ])
+ 
+      setFx(fxRates)
+ 
+      if (!data) return
+ 
+      // 2. Obtener precios actuales de todos los tickers
       const conPrecios = await Promise.all(
         data.map(async (e) => {
           const precioActual = await getPrecio(e.ticker)
-          const precioEntrada = Number(e.precio_entrada)
-          const rendimiento = precioActual && precioEntrada
-            ? ((precioActual - precioEntrada) / precioEntrada) * 100
-            : null
-          return { ...e, precioActual, rendimiento }
+          const moneda: string = (e.moneda ?? 'USD').toUpperCase()
+ 
+          // Tipo de cambio a USD (1 si ya es USD)
+          const toUSD = moneda === 'USD' ? 1 : (fxRates[moneda] ?? 1)
+ 
+          // Precio en USD para cálculo de pesos
+          const precioUSD = precioActual != null ? precioActual * toUSD : null
+ 
+          const entrada = Number(e.precio_entrada)
+          const rendimiento =
+            precioActual && entrada
+              ? ((precioActual - entrada) / entrada) * 100
+              : null
+ 
+          return { ...e, precioActual, precioUSD, moneda, rendimiento }
         })
       )
-
-      const totalValue = conPrecios.reduce((acc, e) =>
-        e.precioActual ? acc + e.precioActual * e.cantidad : acc, 0)
-
-      const final = conPrecios
-        .map((e) => ({
-          ...e,
-          peso: totalValue
-            ? (e.precioActual ? (e.precioActual * e.cantidad / totalValue) * 100 : 0)
-            : 0
-        }))
-        .sort((a, b) => b.peso - a.peso)
-
+ 
+      // 3. Calcular valor total del portafolio en USD
+      const totalValueUSD = conPrecios.reduce((acc, e) => {
+        return e.precioUSD != null ? acc + e.precioUSD * e.cantidad : acc
+      }, 0)
+ 
+      // 4. Calcular peso de cada posición usando precios en USD
+      const final = conPrecios.map((e) => ({
+        ...e,
+        peso:
+          totalValueUSD && e.precioUSD != null
+            ? (e.precioUSD * e.cantidad / totalValueUSD) * 100
+            : 0,
+      }))
+ 
+      // 5. Ordenar de mayor a menor peso
+      final.sort((a, b) => b.peso - a.peso)
+ 
       setRows(final)
       setLoading(false)
     }
+ 
     cargar()
   }, [])
-
-  const withReturn = rows.filter((e) => e.rendimiento != null)
-  const sorted = [...withReturn].sort((a, b) => b.rendimiento - a.rendimiento)
-  const winners = sorted.slice(0, 3)
-  const losers = sorted.slice(-3).reverse()
-  const avgReturn = withReturn.length
-    ? withReturn.reduce((acc, e) => acc + e.rendimiento, 0) / withReturn.length
-    : null
-
-  const headers = ['Ticker', 'Nombre', 'País', 'Sector', 'Precio Entrada', 'Precio Actual', 'Rendimiento', 'Peso']
-
+ 
+  const headers: { label: string; align?: 'right' | 'left' | 'center' }[] = [
+    { label: '% of total', align: 'left' },
+    { label: 'Ticker' },
+    { label: 'Name' },
+    { label: 'Country' },
+    { label: 'Sector' },
+    { label: 'Cost Basis', align: 'right' },
+    { label: 'Return', align: 'right' },
+    { label: 'Conviction', align: 'center' },
+  ]
+ 
   return (
     <div style={{ background: C.bg, minHeight: '100vh', fontFamily: C.sans }}>
       <Navbar />
-
-      <main style={{ maxWidth: 1280, margin: '0 auto', padding: '48px' }}>
-
-        {/* Título */}
-        <div style={{ marginBottom: 36 }}>
-          <h1 style={{
-            color: C.text,
-            fontSize: 35,
+      <main
+        style={{
+          maxWidth: 1280,
+          margin: '0 auto',
+          padding: isMobile ? '40px 20px 60px' : '60px 48px 80px',
+        }}
+      >
+        {/* ── Section label + heading ── */}
+        <p
+          style={{
+            fontSize: 12,
             fontWeight: 700,
-            margin: 0,
+            letterSpacing: 4,
+            textTransform: 'uppercase',
+            color: C.textDim,
+            marginBottom: 15,
+          }}
+        >
+          Current Holdings
+        </p>
+        <h1
+          style={{
             fontFamily: C.sans,
-          }}>
-            Portafolio
-          </h1>
-          <div style={{ width: 40, height: 2, background: C.accent, opacity: 0.3, marginTop: 10 }} />
-        </div>
-
+            fontSize: isMobile ? 28 : 36,
+            fontWeight: 700,
+            color: C.text,
+            marginBottom: isMobile ? 28 : 40,
+            lineHeight: 1.1,
+          }}
+        >
+          My Portfolio
+        </h1>
+ 
+        {/* ── Divider ── */}
+        <div
+          style={{
+            width: 48,
+            height: 2,
+            background: C.border,
+            marginBottom: isMobile ? 28 : 40,
+          }}
+        />
+ 
         {loading ? (
-          <div style={{ color: C.textDim, fontSize: 15, letterSpacing: 2 }}>
-            Cargando precios...
+          <div style={{ color: C.textDim, fontSize: 15, paddingTop: 20 }}>
+            Cargando...
           </div>
         ) : (
-          <>
-            {/* Stats + Performers */}
-            <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 40, alignItems: 'flex-start' }}>
-              <StatCard label="Posiciones" value={`${rows.length}`} />
-              <StatCard
-                label="Retorno Promedio"
-                value={avgReturn != null ? `${avgReturn > 0 ? '+' : ''}${avgReturn.toFixed(2)}%` : '-'}
-                color={avgReturn != null ? (avgReturn > 0 ? C.green : C.red) : C.text}
-              />
-              <div style={{ flex: 1, minWidth: 16 }} />
-              <PerformerCard title="🏆 Top Winners" items={winners} isWinner={true} />
-              <PerformerCard title="📉 Top Losers" items={losers} isWinner={false} />
-            </div>
-
-            {/* Tabla */}
-            <div style={{
+          <div
+            style={{
               border: `1px solid ${C.border}`,
               borderRadius: 12,
               overflow: 'hidden',
-              boxShadow: '0 1px 4px rgba(36,65,67,0.06)',
-            }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 15 }}>
+              background: C.bgCard,
+            }}
+          >
+            <div style={{ width: '100%', overflowX: 'auto' }}>
+              <table
+                style={{
+                  minWidth: isMobile ? 680 : 980,
+                  width: '100%',
+                  borderCollapse: 'collapse',
+                }}
+              >
                 <thead>
                   <tr style={{ background: C.bgCard }}>
-                    {headers.map((h) => (
-                      <th key={h} style={{
-                        color: C.textDim,
-                        fontSize: 15,
-                        letterSpacing: 2,
-                        textTransform: 'uppercase',
-                        padding: '14px 16px',
-                        textAlign: 'left',
-                        fontWeight: 700,
-                        borderBottom: `1px solid ${C.border}`,
-                        fontFamily: C.sans,
-                      }}>
-                        {h}
+                    {headers.map(({ label, align }) => (
+                      <th
+                        key={label}
+                        style={{
+                          padding: '14px 16px',
+                          textAlign: align ?? 'left',
+                          fontSize: 12,
+                          fontWeight: 700,
+                          letterSpacing: 2,
+                          textTransform: 'uppercase',
+                          color: C.textDim,
+                          borderBottom: `1px solid ${C.border}`,
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {label}
                       </th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.map((e, i) => (
-                    <tr
-                      key={e.ticker}
-                      onClick={() => router.push(`/empresa/${e.ticker}`)}
-                      style={{
-                        background: i % 2 === 0 ? C.bgRow : C.bgRowAlt,
-                        cursor: 'pointer',
-                      }}
-                      onMouseEnter={(el) => (el.currentTarget.style.background = C.bgRowHover)}
-                      onMouseLeave={(el) => (el.currentTarget.style.background = i % 2 === 0 ? C.bgRow : C.bgRowAlt)}
-                    >
-                      <td style={{ padding: '14px 16px', borderBottom: `1px solid ${C.border}` }}>
-                        <span style={{ color: C.text, fontWeight: 700, fontSize: 15 }}>
-                          {e.ticker}
-                        </span>
-                      </td>
-                      <td style={{ padding: '14px 16px', color: C.text, borderBottom: `1px solid ${C.border}` }}>
-                        {e.nombre}
-                      </td>
-                      <td style={{ padding: '14px 16px', color: C.textDim, borderBottom: `1px solid ${C.border}` }}>
-                        {e.pais}
-                      </td>
-                      <td style={{ padding: '14px 16px', borderBottom: `1px solid ${C.border}` }}>
-                        <span style={{
-                          color: C.text,
-                          background: C.bgCard,
-                          border: `1px solid ${C.border}`,
-                          borderRadius: 4,
-                          padding: '2px 8px',
-                          fontSize: 15,
-                          letterSpacing: 2,
-                          fontWeight: 600,
-                        }}>
-                          {e.sector}
-                        </span>
-                      </td>
-                      <td style={{ padding: '14px 16px', color: C.textDim, borderBottom: `1px solid ${C.border}` }}>
-                        {e.precio_entrada?.toFixed(2)}
-                      </td>
-                      <td style={{ padding: '14px 16px', color: C.text, borderBottom: `1px solid ${C.border}`, fontWeight: 600 }}>
-                        {e.precioActual ? e.precioActual.toFixed(2) : '—'}
-                      </td>
-                      <td style={{ padding: '14px 16px', borderBottom: `1px solid ${C.border}` }}>
-                        {e.rendimiento != null ? (
-                          <span style={{
-                            color: e.rendimiento > 0 ? C.green : e.rendimiento < 0 ? C.red : C.neutral,
-                            background: e.rendimiento > 0 ? C.greenBg : e.rendimiento < 0 ? C.redBg : 'transparent',
-                            padding: '3px 10px',
-                            borderRadius: 20,
-                            fontSize: 15,
+                  {rows.map((e, i) => {
+                    const isHovered = hoveredTicker === e.ticker
+                    const rowBg = isHovered
+                      ? C.bgRowHover
+                      : i % 2
+                      ? C.bgRowAlt
+                      : C.bgRow
+                    const rend: number | null = e.rendimiento
+ 
+                    return (
+                      <tr
+                        key={e.ticker}
+                        onMouseEnter={() => setHoveredTicker(e.ticker)}
+                        onMouseLeave={() => setHoveredTicker(null)}
+                        style={{
+                          background: rowBg,
+                          transition: 'background 0.15s',
+                        }}
+                      >
+                        {/* % of total */}
+                        <td
+                          style={{
+                            padding: '13px 16px',
+                            textAlign: 'right',
                             fontWeight: 700,
-                          }}>
-                            {e.rendimiento > 0 ? '+' : ''}{e.rendimiento.toFixed(2)}%
-                          </span>
-                        ) : '—'}
-                      </td>
-                      <td style={{ padding: '14px 16px', color: C.textDim, borderBottom: `1px solid ${C.border}` }}>
-                        {e.peso != null ? `${e.peso.toFixed(1)}%` : '—'}
-                      </td>
-                      
-                    </tr>
-                  ))}
+                            fontSize: 14,
+                            color: C.text,
+                            borderBottom: `1px solid ${C.border}`,
+                          }}
+                        >
+                          {e.peso ? e.peso.toFixed(1) + '%' : '—'}
+                        </td>
+ 
+                        {/* Ticker + moneda */}
+                        <td
+                          style={{
+                            padding: '13px 16px',
+                            fontWeight: 700,
+                            fontSize: 14,
+                            color: C.accent,
+                            borderBottom: `1px solid ${C.border}`,
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {e.ticker}
+                          {e.moneda !== 'USD' && (
+                            <span
+                              style={{
+                                marginLeft: 6,
+                                fontSize: 10,
+                                fontWeight: 600,
+                                color: C.textDim,
+                                background: C.border,
+                                borderRadius: 4,
+                                padding: '1px 5px',
+                                letterSpacing: 0.5,
+                              }}
+                            >
+                              {e.moneda}
+                            </span>
+                          )}
+                        </td>
+ 
+                        {/* Nombre */}
+                        <td
+                          style={{
+                            padding: '13px 16px',
+                            fontSize: 14,
+                            color: C.text,
+                            borderBottom: `1px solid ${C.border}`,
+                          }}
+                        >
+                          {e.nombre}
+                        </td>
+ 
+                        {/* País */}
+                        <td
+                          style={{
+                            padding: '13px 16px',
+                            fontSize: 14,
+                            color: C.textDim,
+                            borderBottom: `1px solid ${C.border}`,
+                          }}
+                        >
+                          {e.pais}
+                        </td>
+ 
+                        {/* Sector */}
+                        <td
+                          style={{
+                            padding: '13px 16px',
+                            fontSize: 14,
+                            color: C.textDim,
+                            borderBottom: `1px solid ${C.border}`,
+                          }}
+                        >
+                          {e.sector}
+                        </td>
+ 
+                        {/* Cost Basis */}
+                        <td
+                          style={{
+                            padding: '13px 16px',
+                            textAlign: 'right',
+                            fontSize: 14,
+                            fontWeight: 600,
+                            color: C.text,
+                            borderBottom: `1px solid ${C.border}`,
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {e.precio_entrada}
+                        </td>
+ 
+                        {/* Rendimiento */}
+                        <td
+                          style={{
+                            padding: '13px 16px',
+                            textAlign: 'right',
+                            fontSize: 14,
+                            fontWeight: 700,
+                            color:
+                              rend == null
+                                ? C.neutral
+                                : rend >= 0
+                                ? C.green
+                                : C.red,
+                            borderBottom: `1px solid ${C.border}`,
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {rend != null
+                            ? (rend > 0 ? '+' : '') + rend.toFixed(2) + '%'
+                            : '—'}
+                        </td>
+ 
+                        {/* Convicción */}
+                        <td
+                          style={{
+                            padding: '13px 16px',
+                            textAlign: 'center',
+                            borderBottom: `1px solid ${C.border}`,
+                          }}
+                        >
+                          <ConviccionBadge value={e.conviccion} />
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
-          </>
+          </div>
         )}
       </main>
     </div>

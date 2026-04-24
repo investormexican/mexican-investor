@@ -1,10 +1,10 @@
 'use client'
-
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { useParams, usePathname } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import Link from 'next/link'
-
+import Navbar from '@/components/Navbar'
+ 
 const C = {
   bg: '#EEE7D7',
   bgCard: '#E5DCC8',
@@ -20,320 +20,307 @@ const C = {
   neutral: '#6b7280',
   accent: '#244143',
   sans: "var(--font-dm-sans), 'Helvetica Neue', sans-serif",
-  serif: "'Playfair Display', Georgia, serif",
 }
-
-function Navbar() {
-  const pathname = usePathname()
-
-  const linkStyle = function (href: string) {
-    const active = pathname === href
-
-    return {
-      color: active ? '#EEE7D7' : '#a0b8b4',
-      fontFamily: C.sans,
-      fontSize: 15,
-      fontWeight: active ? 700 : 500,
-      letterSpacing: 2,
-      textTransform: 'uppercase' as const,
-      textDecoration: 'none',
-    }
-  }
-
-  return (
-    <nav style={{
-      background: C.accent,
-      borderBottom: '1px solid #1a3130',
-      padding: '0 48px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      height: 64,
-      position: 'sticky',
-      top: 0,
-      zIndex: 100,
-    }}>
-      <Link href="/" style={{ textDecoration: 'none' }}>
-      <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 10,
-        }}>
-          <img
-          src="/sombrero.png"
-          alt="logo"
-          style={{
-            height: 28,
-            width: 'auto',
-          }}
-        />
-        <span style={{
-          color: '#EEE7D7',
-          fontFamily: C.sans,
-          fontSize: 30,
-          letterSpacing: 2,
-          fontWeight: 700,
-        }}>
-          Mexican Investor
-        </span>
-        </div>
-      </Link>
-
-      <div style={{ display: 'flex', gap: 32 }}>
-        <Link href="/small-caps" style={linkStyle('/')}>
-          3 Small-Caps
-        </Link>
-
-        <Link href="/portafolio" style={linkStyle('/portafolio')}>
-          Portafolio
-        </Link>
-      </div>
-    </nav>
-  )
+ 
+/* ── Responsive hook ───────────────────────────────────────────── */
+function useIsMobile(bp = 640) {
+  const [v, setV] = useState(false)
+  useEffect(() => {
+    const fn = () => setV(window.innerWidth < bp)
+    fn()
+    window.addEventListener('resize', fn)
+    return () => window.removeEventListener('resize', fn)
+  }, [bp])
+  return v
 }
-
-function EstatusBadge(props: { estatus: string }) {
-  const map: any = {
-    Intacta: { color: C.green, bg: C.greenBg },
-    Duda: { color: C.amber, bg: C.amberBg },
-    Rota: { color: C.red, bg: C.redBg },
+ 
+/* ── Estatus Badge ─────────────────────────────────────────────── */
+function EstatusBadge({ estatus }: { estatus: string }) {
+  const map: Record<string, { color: string; bg: string }> = {
+    Intact: { color: C.green, bg: C.greenBg },
+    Risk:    { color: C.amber, bg: C.amberBg },
+    Broken:    { color: C.red,   bg: C.redBg   },
   }
-
-  const s = map[props.estatus] || { color: C.neutral, bg: 'transparent' }
-
+  const s = map[estatus] ?? { color: C.neutral, bg: 'transparent' }
   return (
     <span style={{
       color: s.color,
       background: s.bg,
-      padding: '6px 14px',
-      borderRadius: 10,
+      padding: '5px 14px',
+      borderRadius: 20,
+      fontSize: 13,
       fontWeight: 700,
+      whiteSpace: 'nowrap',
     }}>
-      {props.estatus}
+      Thesis: {estatus}
     </span>
   )
 }
-
-function MetricCard(props: { title: string; value: string; color?: string }) {
+ 
+/* ── Metric Card ───────────────────────────────────────────────── */
+function MetricCard({ label, value }: { label: string; value: string | number }) {
   return (
     <div style={{
       background: C.bgCard,
-      border: '1px solid ' + C.border,
+      border: `1px solid ${C.border}`,
       borderRadius: 10,
       padding: '16px 20px',
     }}>
-      <div style={{
-        fontSize: 15,
-        letterSpacing: 2,
-        color: C.textDim,
-        marginBottom: 10,
-        fontWeight: 600
-      }}>
-        {props.title}
-      </div>
-
-      <div style={{
-        fontSize: 15,
+      <p style={{
+        fontSize: 11,
         fontWeight: 700,
-        color: props.color || C.text
+        letterSpacing: 3,
+        textTransform: 'uppercase',
+        color: C.textDim,
+        marginBottom: 6,
       }}>
-        {props.value}
-      </div>
+        {label}
+      </p>
+      <p style={{
+        fontSize: 20,
+        fontWeight: 700,
+        color: C.text,
+      }}>
+        {value}
+      </p>
     </div>
   )
 }
-
-function getCurrencySymbol(pais: string) {
-  const map: any = {
-    'Estados Unidos': '$',
-    'Canadá': 'C$',
-    'España': '€',
-    'Reino Unido': '£',
-    'Polonia': 'zł',
-    'Australia': 'A$',
-  }
-  return map[pais] || '$'
-}
-
-async function getPrecio(ticker: string) {
-  try {
-    const res = await fetch('/api/precio?ticker=' + ticker)
-    const data = await res.json()
-    return data.precio || null
-  } catch {
-    return null
-  }
-}
-
+ 
+/* ── Page ──────────────────────────────────────────────────────── */
 export default function Empresa() {
   const params = useParams()
   const ticker = Array.isArray(params.ticker) ? params.ticker[0] : params.ticker
-
+ 
   const [data, setData] = useState<any>(null)
   const [articulos, setArticulos] = useState<any[]>([])
   const [precioActual, setPrecioActual] = useState<number | null>(null)
   const [rendimiento, setRendimiento] = useState<number | null>(null)
-
-  useEffect(function () {
+  const isMobile = useIsMobile()
+ 
+  useEffect(() => {
     async function fetchData() {
-      const res = await supabase.from('tres_en_tres').select('*').eq('ticker', ticker).maybeSingle()
-
+      const res = await supabase
+        .from('tres_en_tres')
+        .select('*')
+        .eq('ticker', ticker)
+        .maybeSingle()
       if (!res.data) return
       setData(res.data)
-
-      const precio = await getPrecio(res.data.ticker)
-      setPrecioActual(precio)
-
+ 
+      const resPrecio = await fetch('/api/precio?ticker=' + res.data.ticker)
+      const p = (await resPrecio.json()).precio
+      setPrecioActual(p)
+ 
       const pub = Number(res.data.precio_publicacion)
-
-      if (precio && pub) {
-        setRendimiento(((precio - pub) / pub) * 100)
-      }
-
+      if (p && pub) setRendimiento(((p - pub) / pub) * 100)
+ 
       const arts = await supabase
         .from('articulos')
         .select('*')
         .eq('ticker', res.data.ticker)
         .order('fecha', { ascending: false })
-
       setArticulos(arts.data || [])
     }
-
     if (ticker) fetchData()
   }, [ticker])
-
-  if (!data) return <div style={{ padding: 40 }}>Cargando...</div>
-
-  const currency = getCurrencySymbol(data.pais)
-
-  const rendColor =
-    rendimiento != null
-      ? rendimiento > 0 ? C.green : C.red
-      : C.text
-
+ 
+  if (!data) return (
+    <div style={{ background: C.bg, minHeight: '100vh', fontFamily: C.sans }}>
+      <Navbar />
+      <div style={{ padding: 48, color: C.textDim, fontSize: 15 }}>Cargando...</div>
+    </div>
+  )
+ 
+  const rendPositive = rendimiento != null && rendimiento >= 0
+  const rendColor = rendimiento == null ? C.neutral : rendPositive ? C.green : C.red
+  const rendBg    = rendimiento == null ? 'transparent' : rendPositive ? C.greenBg : C.redBg
+ 
   return (
     <div style={{ background: C.bg, minHeight: '100vh', fontFamily: C.sans }}>
       <Navbar />
-
-      <main style={{ maxWidth: 1100, margin: '0 auto', padding: 48 }}>
-
-        {/* HEADER */}
-        <h1 style={{ fontFamily: C.sans, fontSize: 30, marginBottom: 10 }}>
-          {data.nombre} ({data.ticker})
-        </h1>
-
-        <p style={{ color: C.textDim, marginBottom: 10 }}>
-          {data.pais + ' · ' + data.sector}
+ 
+      <main style={{
+        maxWidth: 1100,
+        margin: '0 auto',
+        padding: isMobile ? '32px 20px 60px' : '52px 48px 80px',
+      }}>
+ 
+        {/* ── Back link ── */}
+        <Link href="/small-caps" style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 6,
+          marginBottom: 32,
+          color: C.textDim,
+          textDecoration: 'none',
+          fontSize: 13,
+          fontWeight: 600,
+          letterSpacing: 1,
+          textTransform: 'uppercase',
+        }}>
+          ← Back to Investment Ideas
+        </Link>
+ 
+        {/* ── Header ── */}
+        <p style={{
+          fontSize: 11,
+          fontWeight: 700,
+          letterSpacing: 4,
+          textTransform: 'uppercase',
+          color: C.textDim,
+          marginBottom: 8,
+        }}>
+          {data.pais} · {data.sector}
         </p>
-
-        {/* ESTATUS (mejor posicionado) */}
-        <div style={{ marginTop: 15, marginBottom: 15 }}>
+        <h1 style={{
+          fontFamily: C.sans,
+          fontSize: isMobile ? 28 : 40,
+          fontWeight: 700,
+          color: C.text,
+          lineHeight: 1.1,
+          marginBottom: 16,
+        }}>
+          {data.nombre}
+          <span style={{ color: C.textDim, fontWeight: 400, marginLeft: 12 }}>
+            {data.ticker}
+          </span>
+        </h1>
+ 
+        {/* ── Badges ── */}
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 40 }}>
           <EstatusBadge estatus={data.estatus} />
+          {rendimiento != null && (
+            <span style={{
+              color: rendColor,
+              background: rendBg,
+              padding: '5px 14px',
+              borderRadius: 20,
+              fontSize: 13,
+              fontWeight: 700,
+              whiteSpace: 'nowrap',
+            }}>
+              Performance: {rendimiento > 0 ? '+' : ''}{rendimiento.toFixed(2)}%
+            </span>
+          )}
         </div>
-
-        {/* CARDS */}
+ 
+        {/* ── Divider ── */}
+        <div style={{ width: 48, height: 2, background: C.border, marginBottom: 40 }} />
+ 
+        {/* ── Precios ── */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(3,1fr)',
-          gap: 16,
-          marginBottom: 10
+          gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(2, 200px)',
+          gap: 12,
+          marginBottom: 48,
         }}>
-          <MetricCard
-            title="Precio Publicación"
-            value={currency + data.precio_publicacion.toFixed(2)}
-          />
-
-          <MetricCard
-            title="Precio Actual"
-            value={precioActual ? currency + precioActual.toFixed(2) : '—'}
-          />
-
-          <MetricCard
-            title="Rendimiento"
-            value={
-              rendimiento != null
-                ? (rendimiento > 0 ? '+' : '') + rendimiento.toFixed(2) + '%'
-                : '—'
-            }
-            color={rendColor}
-          />
+          <MetricCard label="Publication Price" value={data.precio_publicacion} />
+          <MetricCard label="Current Price"  value={precioActual != null ? precioActual.toFixed(2) : '—'} />
         </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 40 }}>
-
-          {/* IZQUIERDA */}
-          <div>
-
-            <h2 style={{
-              fontWeight: 700,
+ 
+        {/* ── Tesis ── */}
+        <section style={{ marginBottom: 48 }}>
+          <p style={{
+            fontSize: 11,
+            fontWeight: 700,
+            letterSpacing: 4,
+            textTransform: 'uppercase',
+            color: C.textDim,
+            marginBottom: 12,
+          }}>
+            Investment Thesis
+          </p>
+          <div style={{
+            background: C.bgCard,
+            border: `1px solid ${C.border}`,
+            borderRadius: 12,
+            padding: isMobile ? '20px 18px' : '28px 32px',
+          }}>
+            <p style={{
               fontSize: 15,
-              marginBottom: 15
+              color: C.text,
+              lineHeight: 1.75,
+              margin: 0,
             }}>
-              Tesis de Inversión
-            </h2>
-
-            <p style={{ lineHeight: 1.7 }}>
               {data.tesis}
             </p>
-
-            <h2 style={{
-              fontWeight: 700,
-              fontSize: 15,
-              marginTop: 20,
-              marginBottom: 20
-            }}>
-              Artículos
-            </h2>
-
-            {articulos.length > 0 ? (
-              articulos.map(function (a) {
-                return (
-                  <a
-                    key={a.id}
-                    href={a.url}
-                    target="_blank"
-                    style={{
-                      display: 'block',
-                      marginBottom: 20,
-                      color: C.text,
-                      textDecoration: 'none'
-                    }}
-                  >
-                    {a.titulo}
-                  </a>
-                )
-              })
-            ) : (
-              <p style={{ color: C.textDim }}>
-                No hay artículos disponibles.
-              </p>
-            )}
-
           </div>
-
-          {/* DERECHA */}
-          <div>
-
-            <h2 style={{
-              fontWeight: 700,
-              fontSize: 15,
-              marginBottom: 15
-            }}>
-              Métricas Clave
-            </h2>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <MetricCard title="Ventas (LTM)" value={data.revenue_growth_yoy + '%'} />
-              <MetricCard title="FCF Growth" value={data.fcf_growth + '%'} />
-              <MetricCard title="Margen Bruto" value={data.gross_margin + '%'} />
-              <MetricCard title="Margen FCF" value={data.fcf_margin + '%'} />
-              <MetricCard title="Deuda Neta" value={currency + data.net_debt + 'M'} />
+        </section>
+ 
+        {/* ── Métricas ── */}
+        <section style={{ marginBottom: 48 }}>
+          <p style={{
+            fontSize: 11,
+            fontWeight: 700,
+            letterSpacing: 4,
+            textTransform: 'uppercase',
+            color: C.textDim,
+            marginBottom: 12,
+          }}>
+            Key Ratios
+          </p>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)',
+            gap: 12,
+          }}>
+            <MetricCard label="Sales Growth" value={`${data.revenue_growth_yoy}%`} />
+            <MetricCard label="FCF Growth"    value={`${data.fcf_growth}%`} />
+            <MetricCard label="Gross Margin"        value={`${data.gross_margin}%`} />
+            <MetricCard label="FCF Margin"          value={`${data.fcf_margin}%`} />
+            
+          </div>
+        </section>
+ 
+        {/* ── Artículos ── */}
+        <section>
+          <p style={{
+            fontSize: 11,
+            fontWeight: 700,
+            letterSpacing: 4,
+            textTransform: 'uppercase',
+            color: C.textDim,
+            marginBottom: 12,
+          }}>
+            Related Articles
+          </p>
+          {articulos.length > 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {articulos.map(a => (
+                <a
+                  key={a.id}
+                  href={a.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 12,
+                    background: C.bgCard,
+                    border: `1px solid ${C.border}`,
+                    borderRadius: 10,
+                    padding: '14px 20px',
+                    color: C.text,
+                    textDecoration: 'none',
+                    fontSize: 14,
+                    fontWeight: 600,
+                    transition: 'background 0.15s',
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.background = '#DDD5C0')}
+                  onMouseLeave={e => (e.currentTarget.style.background = C.bgCard)}
+                >
+                  <span>{a.titulo}</span>
+                  <span style={{ color: C.textDim, fontSize: 12, whiteSpace: 'nowrap' }}>→</span>
+                </a>
+              ))}
             </div>
-
-          </div>
-
-        </div>
-
+          ) : (
+            <p style={{ color: C.textDim, fontSize: 14 }}>No hay artículos disponibles.</p>
+          )}
+        </section>
+ 
       </main>
     </div>
   )
