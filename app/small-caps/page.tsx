@@ -166,6 +166,16 @@ export default function SmallCaps() {
           Investment Ideas
         </h1>
 
+        <p style={{
+        fontSize: 16,
+        color: C.textDim,
+        marginBottom: isMobile ? 20 : 24,
+        maxWidth: 600,
+        lineHeight: 1.5,
+        }}>
+        Click on any ticker to view the full investment thesis and related articles.
+        </p>
+
         <div style={{ width: 48, height: 2, background: C.border, marginBottom: isMobile ? 28 : 40 }} />
 
         {/* Tabla */}
