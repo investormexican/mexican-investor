@@ -144,7 +144,7 @@ export default function Portafolio() {
       // 1. Obtener tipos de cambio y datos de Supabase en paralelo
       const [fxRates, { data }] = await Promise.all([
         getExchangeRates(),
-        supabase.from('portafolio').select('*'),
+        supabase.from('portafolio').select('*').eq('activa', true)
       ])
  
       setFx(fxRates)
