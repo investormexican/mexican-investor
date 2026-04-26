@@ -1,27 +1,32 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useLayoutEffect, useState } from 'react'
 import Link from 'next/link'
- 
+
 const C = {
   accent: '#244143',
   sans: "var(--font-dm-sans), 'Helvetica Neue', sans-serif",
 }
- 
+
 function useIsMobile(bp = 640) {
-  const [v, setV] = useState(false)
-  useEffect(() => {
+  const [v, setV] = useState<boolean | null>(null)
+
+  useLayoutEffect(() => {
     const fn = () => setV(window.innerWidth < bp)
     fn()
     window.addEventListener('resize', fn)
     return () => window.removeEventListener('resize', fn)
   }, [bp])
+
   return v
 }
- 
+
 export default function Navbar() {
   const isMobile = useIsMobile()
   const [open, setOpen] = useState(false)
- 
+
+  // 🔴 clave: no renderizar hasta saber si es mobile
+  if (isMobile === null) return null
+
   return (
     <div style={{
       position: 'sticky',
@@ -56,7 +61,7 @@ export default function Navbar() {
             </span>
           </div>
         </Link>
- 
+
         {/* Desktop links */}
         {!isMobile && (
           <div style={{ display: 'flex', gap: 32 }}>
@@ -85,7 +90,7 @@ export default function Navbar() {
             ))}
           </div>
         )}
- 
+
         {/* Mobile hamburger */}
         {isMobile && (
           <button
@@ -119,7 +124,7 @@ export default function Navbar() {
           </button>
         )}
       </div>
- 
+
       {/* Mobile menu */}
       {isMobile && open && (
         <div style={{

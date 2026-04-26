@@ -1,5 +1,6 @@
 'use client'
-import React, { useEffect, useState } from 'react'
+
+import React, { useEffect, useLayoutEffect, useState } from 'react'
 import Link from 'next/link'
 import Navbar from '@/components/Navbar'
 
@@ -10,11 +11,9 @@ const C = {
   text: '#244143',
   textDim: '#5a7a6e',
   green: '#1a5c3a',
-  greenBg: 'rgba(26,92,58,0.10)',
   red: '#8b2020',
   accent: '#244143',
   sans: "var(--font-dm-sans), 'Helvetica Neue', sans-serif",
-  serif: "'Playfair Display', Georgia, serif",
 }
 
 const trackData = [
@@ -27,16 +26,17 @@ const trackData = [
 ]
 
 const mvc = [
-  { letter: 'Q', word: 'Quality', desc: 'A good business with competitive advantages', color: C.green },
-  { letter: 'G', word: 'Growth', desc: 'Potential to organically grow its Free Cash Flow per share', color: C.green },
-  { letter: 'V', word: 'Value', desc: 'Trading at a valuation that offers at least 15% CAGR', color: C.green },
-  { letter: 'M', word: 'Momentum', desc: 'The stock price shows strength and a positive trend', color: C.text },
+  { letter: 'Q', word: 'Quality',  desc: 'A good business with competitive advantages',                    color: C.green },
+  { letter: 'G', word: 'Growth',   desc: 'Potential to organically grow its Free Cash Flow per share',     color: C.green },
+  { letter: 'V', word: 'Value',    desc: 'Trading at a valuation that offers at least 15% CAGR',          color: C.green },
+  { letter: 'M', word: 'Momentum', desc: 'The stock price shows strength and a positive trend',           color: C.text  },
 ]
 
-// ── Hook responsive ──────────────────────────────────────────────────────────
+// ── useIsMobile ───────────────────────────────────────────────────────────────
+// useLayoutEffect elimina el flash desktop→mobile en el primer render
 function useIsMobile(bp = 640) {
   const [v, setV] = useState(false)
-  useEffect(() => {
+  useLayoutEffect(() => {
     const fn = () => setV(window.innerWidth < bp)
     fn()
     window.addEventListener('resize', fn)
@@ -66,7 +66,7 @@ function useCountUp(target: number, decimals = 1, delay = 400) {
   return val
 }
 
-// ── Gráfico horizontal (desktop) ──────────────────────────────────────────────
+// ── Barra animada desktop (vertical) ─────────────────────────────────────────
 function AnimatedBar({ d, max, index, barH }: {
   d: { year: number; value: number }
   max: number
@@ -84,11 +84,10 @@ function AnimatedBar({ d, max, index, barH }: {
     return () => clearTimeout(t)
   }, [index])
 
-  // Estilos pre-tipados para evitar el error de clave dinámica
   const labelStylePos: React.CSSProperties = {
     position: 'absolute',
     bottom: animated ? h + 4 : 0,
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 700,
     color: C.green,
     whiteSpace: 'nowrap',
@@ -97,7 +96,7 @@ function AnimatedBar({ d, max, index, barH }: {
   const labelStyleNeg: React.CSSProperties = {
     position: 'absolute',
     top: animated ? h + 4 : 0,
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 700,
     color: C.red,
     whiteSpace: 'nowrap',
@@ -106,11 +105,25 @@ function AnimatedBar({ d, max, index, barH }: {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, flex: 1 }}>
-      <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: barH + 28, position: 'relative' }}>
+      <div style={{
+        width: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'flex-end',
+        height: barH + 28,
+        position: 'relative',
+      }}>
         <span style={isPos ? labelStylePos : labelStyleNeg}>
           {d.value > 0 ? '+' : ''}{d.value}%
         </span>
-        <div style={{ width: '100%', height: animated ? h : 0, background: isPos ? C.green : C.red, borderRadius: isPos ? '3px 3px 0 0' : '0 0 3px 3px', transition: `height 0.8s cubic-bezier(.34,1.56,.64,1) ${delay}s` }} />
+        <div style={{
+          width: '100%',
+          height: animated ? h : 0,
+          background: isPos ? C.green : C.red,
+          borderRadius: isPos ? '3px 3px 0 0' : '0 0 3px 3px',
+          transition: `height 0.8s cubic-bezier(.34,1.56,.64,1) ${delay}s`,
+        }} />
         <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 1, background: C.border }} />
       </div>
       <span style={{ fontSize: 12, color: C.textDim, fontWeight: 600 }}>{d.year}</span>
@@ -118,7 +131,7 @@ function AnimatedBar({ d, max, index, barH }: {
   )
 }
 
-// ── Gráfico vertical (móvil) ──────────────────────────────────────────────────
+// ── Barra animada mobile (horizontal) ────────────────────────────────────────
 function AnimatedBarVertical({ d, max, index }: {
   d: { year: number; value: number }
   max: number
@@ -148,7 +161,14 @@ function AnimatedBarVertical({ d, max, index }: {
           minWidth: animated ? 4 : 0,
         }} />
       </div>
-      <span style={{ fontSize: 12, fontWeight: 700, color: isPos ? C.green : C.red, width: 52, textAlign: 'right', flexShrink: 0 }}>
+      <span style={{
+        fontSize: 12,
+        fontWeight: 700,
+        color: isPos ? C.green : C.red,
+        width: 52,
+        textAlign: 'right',
+        flexShrink: 0,
+      }}>
         {d.value > 0 ? '+' : ''}{d.value}%
       </span>
     </div>
@@ -161,30 +181,9 @@ export default function Home() {
   const max = Math.max(...trackData.map(d => Math.abs(d.value)))
   const cagr = useCountUp(28.7, 1, 500)
 
-  // Pre-declaramos estilos con propiedades CSS estrictas para evitar
-  // que TypeScript infiera 'string' en vez del literal correcto
   const sectionStyle: React.CSSProperties = {
     padding: isMobile ? '0 20px 60px' : '0 48px 60px',
     maxWidth: 960,
-    margin: '0 auto',
-  }
-
-  const ctaWrapStyle: React.CSSProperties = {
-    display: 'flex',
-    gap: 12,
-    justifyContent: 'center',
-    flexDirection: isMobile ? 'column' : 'row',
-    alignItems: 'center',
-  }
-
-  const socialWrapStyle: React.CSSProperties = {
-    display: 'flex',
-    justifyContent: 'center',
-    gap: 12,
-    padding: isMobile ? '0 20px 60px' : '0 48px 80px',
-    flexDirection: isMobile ? 'column' : 'row',
-    alignItems: 'center',
-    maxWidth: isMobile ? 400 : undefined,
     margin: '0 auto',
   }
 
@@ -193,34 +192,111 @@ export default function Home() {
       <Navbar />
 
       {/* ── HERO ── */}
-      <div style={{ padding: isMobile ? '48px 20px 40px' : '80px 48px 60px', textAlign: 'center', maxWidth: 800, margin: '0 auto' }}>
-        <div style={{ display: 'inline-block', background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 40, padding: '5px 16px', fontSize: isMobile ? 10 : 15, fontWeight: 700, letterSpacing: 3, textTransform: 'uppercase', color: C.textDim, marginBottom: 20 }}>
+      <div style={{
+        padding: isMobile ? '48px 20px 40px' : '80px 48px 60px',
+        textAlign: 'center',
+        maxWidth: 800,
+        margin: '0 auto',
+      }}>
+        <div style={{
+          display: 'inline-block',
+          background: C.bgCard,
+          border: `1px solid ${C.border}`,
+          borderRadius: 40,
+          padding: '5px 16px',
+          fontSize: isMobile ? 10 : 13,
+          fontWeight: 700,
+          letterSpacing: 3,
+          textTransform: 'uppercase',
+          color: C.textDim,
+          marginBottom: 20,
+        }}>
           Investing since 2020
         </div>
 
-        <h1 style={{ fontFamily: C.sans, fontSize: isMobile ? 36 : 'clamp(40px, 7vw, 60px)', fontWeight: 700, lineHeight: 1.1, color: C.text, marginBottom: 15 }}>
+        <h1 style={{
+          fontFamily: C.sans,
+          fontSize: isMobile ? 36 : 'clamp(40px, 7vw, 60px)',
+          fontWeight: 700,
+          lineHeight: 1.1,
+          color: C.text,
+          marginBottom: 15,
+        }}>
           Mexican Investor
         </h1>
 
         <p style={{ fontSize: isMobile ? 15 : 18, color: C.textDim, lineHeight: 1.6, marginBottom: 15 }}>
           <em>Invirtiendo en Alpha</em> investment analyst. Focused mostly on small-caps
         </p>
+
         <p style={{ fontSize: isMobile ? 13 : 16, color: C.textDim, marginBottom: 30 }}>
           Filosofía QGVM · Quality · Growth · Value · Momentum
         </p>
 
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 40, padding: isMobile ? '8px 14px' : '10px 22px', fontWeight: 700, fontSize: isMobile ? 13 : 15, marginBottom: 36, flexWrap: 'wrap', justifyContent: 'center' }}>
-          <span style={{ background: C.green, color: '#EEE7D7', borderRadius: 20, padding: '3px 10px', fontSize: isMobile ? 12 : 15 }}>CAGR 28.7%</span>
+        {/* CAGR badge */}
+        <div style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 8,
+          background: C.bgCard,
+          border: `1px solid ${C.border}`,
+          borderRadius: 40,
+          padding: isMobile ? '8px 14px' : '10px 22px',
+          fontWeight: 700,
+          fontSize: isMobile ? 13 : 15,
+          marginBottom: 36,
+          flexWrap: 'wrap',
+          justifyContent: 'center',
+        }}>
+          <span style={{ background: C.green, color: '#EEE7D7', borderRadius: 20, padding: '3px 10px', fontSize: isMobile ? 12 : 15 }}>
+            CAGR 28.7%
+          </span>
           <span style={{ color: C.textDim }}>vs</span>
           <span style={{ color: C.textDim }}>S&amp;P 500 15.1%</span>
           <span style={{ color: C.green }}>+13.6 pp</span>
         </div>
 
-        <div style={ctaWrapStyle}>
-          <Link href="/small-caps" style={{ padding: '12px 28px', background: C.accent, color: '#EEE7D7', fontFamily: C.sans, fontSize: isMobile ? 13 : 15, fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase', textDecoration: 'none', borderRadius: 4, width: isMobile ? '100%' : 'auto', textAlign: 'center' }}>
+        {/* CTAs */}
+        <div style={{
+          display: 'flex',
+          gap: 12,
+          justifyContent: 'center',
+          flexDirection: isMobile ? 'column' : 'row',
+          alignItems: 'center',
+        }}>
+          <Link href="/small-caps" style={{
+            padding: '12px 28px',
+            background: C.accent,
+            color: '#EEE7D7',
+            fontFamily: C.sans,
+            fontSize: isMobile ? 13 : 15,
+            fontWeight: 600,
+            letterSpacing: 1,
+            textTransform: 'uppercase',
+            textDecoration: 'none',
+            borderRadius: 4,
+            width: isMobile ? '100%' : 'auto',
+            textAlign: 'center',
+            boxSizing: 'border-box',
+          }}>
             Investment Ideas
           </Link>
-          <Link href="/portafolio" style={{ padding: '12px 28px', background: C.accent, color: '#EEE7D7', fontFamily: C.sans, fontSize: isMobile ? 13 : 15, fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase', textDecoration: 'none', border: `1.5px solid ${C.border}`, borderRadius: 4, width: isMobile ? '100%' : 'auto', textAlign: 'center' }}>
+          <Link href="/portafolio" style={{
+            padding: '12px 28px',
+            background: 'transparent',
+            color: C.text,
+            fontFamily: C.sans,
+            fontSize: isMobile ? 13 : 15,
+            fontWeight: 600,
+            letterSpacing: 1,
+            textTransform: 'uppercase',
+            textDecoration: 'none',
+            border: `1.5px solid ${C.border}`,
+            borderRadius: 4,
+            width: isMobile ? '100%' : 'auto',
+            textAlign: 'center',
+            boxSizing: 'border-box',
+          }}>
             My Portfolio
           </Link>
         </div>
@@ -228,7 +304,7 @@ export default function Home() {
 
       <div style={{ width: 60, height: 2, background: C.border, margin: '0 auto 60px' }} />
 
-      {/* ── MVC² ── */}
+      {/* ── QGVM ── */}
       <div style={sectionStyle}>
         <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: 4, textTransform: 'uppercase', color: C.textDim, marginBottom: 8 }}>
           Investment philosophy
@@ -237,26 +313,46 @@ export default function Home() {
           The QGVM methodology
         </h2>
 
-        {isMobile ? (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
-            {mvc.map(({ letter, word, color }) => (
-              <div key={letter} style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 12, padding: '18px 16px' }}>
-                <div style={{ fontFamily: C.sans, fontSize: 36, fontWeight: 700, color, lineHeight: 1, marginBottom: 6 }}>{letter}</div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{word}</div>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
+          gap: isMobile ? 10 : 12,
+        }}>
+          {mvc.map(({ letter, word, desc, color }) => (
+            <div key={letter} style={{
+              background: C.bgCard,
+              border: `1px solid ${C.border}`,
+              borderRadius: 12,
+              padding: isMobile ? '18px 16px' : '22px 18px',
+            }}>
+              <div style={{
+                fontFamily: C.sans,
+                fontSize: isMobile ? 36 : 40,
+                fontWeight: 700,
+                color,
+                lineHeight: 1,
+                marginBottom: isMobile ? 6 : 8,
+              }}>
+                {letter}
               </div>
-            ))}
-          </div>
-        ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
-            {mvc.map(({ letter, word, desc, color }) => (
-              <div key={letter} style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 12, padding: '22px 18px' }}>
-                <div style={{ fontFamily: C.sans, fontSize: 40, fontWeight: 700, color, lineHeight: 1, marginBottom: 8 }}>{letter}</div>
-                <div style={{ fontSize: 20, fontWeight: 700, color: C.text, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6 }}>{word}</div>
-                <div style={{ fontSize: 15, color: C.textDim, lineHeight: 1.5 }}>{desc}</div>
+              <div style={{
+                fontSize: isMobile ? 13 : 18,
+                fontWeight: 700,
+                color: C.text,
+                letterSpacing: 1,
+                textTransform: 'uppercase',
+                marginBottom: isMobile ? 0 : 6,
+              }}>
+                {word}
               </div>
-            ))}
-          </div>
-        )}
+              {!isMobile && (
+                <div style={{ fontSize: 14, color: C.textDim, lineHeight: 1.5 }}>
+                  {desc}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
       </div>
 
       <div style={{ width: 60, height: 2, background: C.border, margin: '0 auto 60px' }} />
@@ -272,10 +368,22 @@ export default function Home() {
 
         {isMobile ? (
           <>
-            <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 10, padding: '16px 20px', textAlign: 'center', marginBottom: 20 }}>
-              <div style={{ fontFamily: C.sans, fontSize: 36, fontWeight: 700, color: C.green }}>+{cagr.toFixed(1)}%</div>
-              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: C.textDim, marginTop: 4 }}>CAGR Total</div>
+            <div style={{
+              background: C.bgCard,
+              border: `1px solid ${C.border}`,
+              borderRadius: 10,
+              padding: '16px 20px',
+              textAlign: 'center',
+              marginBottom: 20,
+            }}>
+              <div style={{ fontFamily: C.sans, fontSize: 36, fontWeight: 700, color: C.green }}>
+                +{cagr.toFixed(1)}%
+              </div>
+              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: C.textDim, marginTop: 4 }}>
+                CAGR Total
+              </div>
             </div>
+
             <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 12, padding: '20px 16px' }}>
               <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: 4, textTransform: 'uppercase', color: C.textDim, marginBottom: 16 }}>
                 Return by year
@@ -291,18 +399,27 @@ export default function Home() {
           <>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 24 }}>
               {[
-                { label: 'CAGR since 2020', val: `+${cagr.toFixed(1)}%`, color: C.green },
-                { label: 'Best year', val: '+58.3%', color: C.green },
-                { label: 'Years of track record', val: '6', color: C.text },
+                { label: 'CAGR since 2020',      val: `+${cagr.toFixed(1)}%`, color: C.green },
+                { label: 'Best year',             val: '+58.3%',               color: C.green },
+                { label: 'Years of track record', val: '6',                    color: C.text  },
               ].map(({ label, val, color }) => (
-                <div key={label} style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 10, padding: '20px 24px', textAlign: 'center' }}>
+                <div key={label} style={{
+                  background: C.bgCard,
+                  border: `1px solid ${C.border}`,
+                  borderRadius: 10,
+                  padding: '20px 24px',
+                  textAlign: 'center',
+                }}>
                   <div style={{ fontFamily: C.sans, fontSize: 32, fontWeight: 700, color }}>{val}</div>
-                  <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: C.textDim, marginTop: 4 }}>{label}</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: C.textDim, marginTop: 4 }}>
+                    {label}
+                  </div>
                 </div>
               ))}
             </div>
+
             <div style={{ background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 12, padding: 32 }}>
-              <p style={{ fontSize: 15, fontWeight: 700, letterSpacing: 4, textTransform: 'uppercase', color: C.textDim, marginBottom: 24 }}>
+              <p style={{ fontSize: 13, fontWeight: 700, letterSpacing: 4, textTransform: 'uppercase', color: C.textDim, marginBottom: 24 }}>
                 Return by year
               </p>
               <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 12, height: 180 }}>
@@ -310,11 +427,9 @@ export default function Home() {
                   <AnimatedBar key={d.year} d={d} max={max} index={i} barH={130} />
                 ))}
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginTop: 24, paddingTop: 20, borderTop: `1px solid ${C.border}` }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
-                  <div style={{ width: 10, height: 10, borderRadius: '50%', background: C.green, flexShrink: 0 }} />
-                  <span style={{ color: C.textDim }}>Mexican Investor</span>
-                </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 24, paddingTop: 20, borderTop: `1px solid ${C.border}` }}>
+                <div style={{ width: 10, height: 10, borderRadius: '50%', background: C.green, flexShrink: 0 }} />
+                <span style={{ fontSize: 13, color: C.textDim }}>Mexican Investor</span>
               </div>
             </div>
           </>
@@ -324,13 +439,43 @@ export default function Home() {
       <div style={{ width: 60, height: 2, background: C.border, margin: '0 auto 60px' }} />
 
       {/* ── SOCIAL ── */}
-      <div style={socialWrapStyle}>
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        gap: 12,
+        padding: isMobile ? '0 20px 60px' : '0 48px 80px',
+        flexDirection: isMobile ? 'column' : 'row',
+        alignItems: 'center',
+        maxWidth: isMobile ? 400 : undefined,
+        margin: '0 auto',
+      }}>
         {[
-          { href: 'https://x.com/InvestorMexican', label: 'Follow on X', icon: '/icons/x.png' },
-          { href: 'https://mexicaninvestor.substack.com/', label: 'Newsletter on Substack', icon: '/icons/substack.png' },
-        ].map(({ href, label, icon }) => (
-          <a key={href} href={href} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '10px 22px', background: C.bgCard, border: `1px solid ${C.border}`, borderRadius: 8, fontSize: 15, fontWeight: 600, color: C.text, textDecoration: 'none', width: isMobile ? '100%' : 'auto' }}>
-            <img src={icon} style={{ height: 18 }} alt={label} />
+          { href: 'https://x.com/InvestorMexican',          label: 'Follow on X',           icon: '/icons/x.png'        },
+          { href: 'https://mexicaninvestor.substack.com/',   label: 'Newsletter on Substack', icon: '/icons/substack.png' },
+        ].map(({ href, label, icon }) => (<a
+          
+            key={href}
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 10,
+              padding: '10px 22px',
+              background: C.bgCard,
+              border: `1px solid ${C.border}`,
+              borderRadius: 8,
+              fontSize: 15,
+              fontWeight: 600,
+              color: C.text,
+              textDecoration: 'none',
+              width: isMobile ? '100%' : 'auto',
+              boxSizing: 'border-box',
+            }}
+          >
+            <img src={icon} style={{ height: 18 }} alt="" />
             {label}
           </a>
         ))}

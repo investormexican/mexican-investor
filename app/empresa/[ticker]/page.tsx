@@ -1,10 +1,11 @@
 'use client'
-import { useEffect, useState } from 'react'
+
+import { useEffect, useLayoutEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import Navbar from '@/components/Navbar'
- 
+
 const C = {
   bg: '#EEE7D7',
   bgCard: '#E5DCC8',
@@ -21,11 +22,11 @@ const C = {
   accent: '#244143',
   sans: "var(--font-dm-sans), 'Helvetica Neue', sans-serif",
 }
- 
-/* ── Responsive hook ───────────────────────────────────────────── */
+
+/* ── Responsive hook ─────────────────────────────────────────── */
 function useIsMobile(bp = 640) {
   const [v, setV] = useState(false)
-  useEffect(() => {
+  useLayoutEffect(() => {
     const fn = () => setV(window.innerWidth < bp)
     fn()
     window.addEventListener('resize', fn)
@@ -33,13 +34,13 @@ function useIsMobile(bp = 640) {
   }, [bp])
   return v
 }
- 
-/* ── Estatus Badge ─────────────────────────────────────────────── */
+
+/* ── Estatus Badge ───────────────────────────────────────────── */
 function EstatusBadge({ estatus }: { estatus: string }) {
   const map: Record<string, { color: string; bg: string }> = {
     Intact: { color: C.green, bg: C.greenBg },
-    Risk:    { color: C.amber, bg: C.amberBg },
-    Broken:    { color: C.red,   bg: C.redBg   },
+    Risk:   { color: C.amber, bg: C.amberBg },
+    Broken: { color: C.red,   bg: C.redBg   },
   }
   const s = map[estatus] ?? { color: C.neutral, bg: 'transparent' }
   return (
@@ -56,8 +57,8 @@ function EstatusBadge({ estatus }: { estatus: string }) {
     </span>
   )
 }
- 
-/* ── Metric Card ───────────────────────────────────────────────── */
+
+/* ── Metric Card ─────────────────────────────────────────────── */
 function MetricCard({ label, value }: { label: string; value: string | number }) {
   return (
     <div style={{
@@ -73,6 +74,7 @@ function MetricCard({ label, value }: { label: string; value: string | number })
         textTransform: 'uppercase',
         color: C.textDim,
         marginBottom: 6,
+        margin: 0,
       }}>
         {label}
       </p>
@@ -80,24 +82,43 @@ function MetricCard({ label, value }: { label: string; value: string | number })
         fontSize: 20,
         fontWeight: 700,
         color: C.text,
+        margin: '6px 0 0',
       }}>
         {value}
       </p>
     </div>
   )
 }
- 
-/* ── Page ──────────────────────────────────────────────────────── */
+
+/* ── Sección label reutilizable ──────────────────────────────── */
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <p style={{
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: 4,
+      textTransform: 'uppercase',
+      color: C.textDim,
+      marginBottom: 12,
+      margin: '0 0 12px',
+    }}>
+      {children}
+    </p>
+  )
+}
+
+/* ── Page ────────────────────────────────────────────────────── */
 export default function Empresa() {
   const params = useParams()
   const ticker = Array.isArray(params.ticker) ? params.ticker[0] : params.ticker
- 
-  const [data, setData] = useState<any>(null)
+
+  const [data, setData]           = useState<any>(null)
   const [articulos, setArticulos] = useState<any[]>([])
   const [precioActual, setPrecioActual] = useState<number | null>(null)
-  const [rendimiento, setRendimiento] = useState<number | null>(null)
+  const [rendimiento, setRendimiento]   = useState<number | null>(null)
+  const [hoveredArticulo, setHoveredArticulo] = useState<number | null>(null)
   const isMobile = useIsMobile()
- 
+
   useEffect(() => {
     async function fetchData() {
       const res = await supabase
@@ -105,16 +126,17 @@ export default function Empresa() {
         .select('*')
         .eq('ticker', ticker)
         .maybeSingle()
+
       if (!res.data) return
       setData(res.data)
- 
+
       const resPrecio = await fetch('/api/precio?ticker=' + res.data.ticker)
       const p = (await resPrecio.json()).precio
       setPrecioActual(p)
- 
+
       const pub = Number(res.data.precio_publicacion)
       if (p && pub) setRendimiento(((p - pub) / pub) * 100)
- 
+
       const arts = await supabase
         .from('articulos')
         .select('*')
@@ -122,31 +144,33 @@ export default function Empresa() {
         .order('fecha', { ascending: false })
       setArticulos(arts.data || [])
     }
+
     if (ticker) fetchData()
   }, [ticker])
- 
+
+  /* Loading state */
   if (!data) return (
     <div style={{ background: C.bg, minHeight: '100vh', fontFamily: C.sans }}>
       <Navbar />
-      <div style={{ padding: 48, color: C.textDim, fontSize: 15 }}>Cargando...</div>
+      <div style={{ padding: 48, color: C.textDim, fontSize: 15 }}>Loading...</div>
     </div>
   )
- 
+
   const rendPositive = rendimiento != null && rendimiento >= 0
   const rendColor = rendimiento == null ? C.neutral : rendPositive ? C.green : C.red
   const rendBg    = rendimiento == null ? 'transparent' : rendPositive ? C.greenBg : C.redBg
- 
+
   return (
     <div style={{ background: C.bg, minHeight: '100vh', fontFamily: C.sans }}>
       <Navbar />
- 
+
       <main style={{
         maxWidth: 1100,
         margin: '0 auto',
         padding: isMobile ? '32px 20px 60px' : '52px 48px 80px',
       }}>
- 
-        {/* ── Back link ── */}
+
+        {/* Back link */}
         <Link href="/small-caps" style={{
           display: 'inline-flex',
           alignItems: 'center',
@@ -161,33 +185,34 @@ export default function Empresa() {
         }}>
           ← Back to Investment Ideas
         </Link>
- 
-        {/* ── Header ── */}
+
+        {/* Header */}
         <p style={{
           fontSize: 11,
           fontWeight: 700,
           letterSpacing: 4,
           textTransform: 'uppercase',
           color: C.textDim,
-          marginBottom: 8,
+          margin: '0 0 8px',
         }}>
           {data.pais} · {data.sector}
         </p>
+
         <h1 style={{
           fontFamily: C.sans,
           fontSize: isMobile ? 28 : 40,
           fontWeight: 700,
           color: C.text,
           lineHeight: 1.1,
-          marginBottom: 16,
+          margin: '0 0 16px',
         }}>
           {data.nombre}
           <span style={{ color: C.textDim, fontWeight: 400, marginLeft: 12 }}>
             {data.ticker}
           </span>
         </h1>
- 
-        {/* ── Badges ── */}
+
+        {/* Badges */}
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 40 }}>
           <EstatusBadge estatus={data.estatus} />
           {rendimiento != null && (
@@ -204,11 +229,10 @@ export default function Empresa() {
             </span>
           )}
         </div>
- 
-        {/* ── Divider ── */}
+
         <div style={{ width: 48, height: 2, background: C.border, marginBottom: 40 }} />
- 
-        {/* ── Precios ── */}
+
+        {/* Prices */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(2, 200px)',
@@ -216,89 +240,58 @@ export default function Empresa() {
           marginBottom: 48,
         }}>
           <MetricCard label="Publication Price" value={data.precio_publicacion} />
-          <MetricCard label="Current Price"  value={precioActual != null ? precioActual.toFixed(2) : '—'} />
+          <MetricCard label="Current Price" value={precioActual != null ? precioActual.toFixed(2) : '—'} />
         </div>
- 
-        {/* ── Tesis ── */}
+
+        {/* Investment Thesis */}
         <section style={{ marginBottom: 48 }}>
-          <p style={{
-            fontSize: 11,
-            fontWeight: 700,
-            letterSpacing: 4,
-            textTransform: 'uppercase',
-            color: C.textDim,
-            marginBottom: 12,
-          }}>
-            Investment Thesis
-          </p>
+          <SectionLabel>Investment Thesis</SectionLabel>
           <div style={{
             background: C.bgCard,
             border: `1px solid ${C.border}`,
             borderRadius: 12,
             padding: isMobile ? '20px 18px' : '28px 32px',
           }}>
-            <p style={{
-              fontSize: 15,
-              color: C.text,
-              lineHeight: 1.75,
-              margin: 0,
-            }}>
+            <p style={{ fontSize: 15, color: C.text, lineHeight: 1.75, margin: 0 }}>
               {data.tesis}
             </p>
           </div>
         </section>
- 
-        {/* ── Métricas ── */}
+
+        {/* Key Ratios */}
         <section style={{ marginBottom: 48 }}>
-          <p style={{
-            fontSize: 11,
-            fontWeight: 700,
-            letterSpacing: 4,
-            textTransform: 'uppercase',
-            color: C.textDim,
-            marginBottom: 12,
-          }}>
-            Key Ratios
-          </p>
+          <SectionLabel>Key Ratios</SectionLabel>
           <div style={{
             display: 'grid',
             gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)',
             gap: 12,
           }}>
             <MetricCard label="Sales Growth" value={`${data.revenue_growth_yoy}%`} />
-            <MetricCard label="FCF Growth"    value={`${data.fcf_growth}%`} />
-            <MetricCard label="Gross Margin"        value={`${data.gross_margin}%`} />
-            <MetricCard label="FCF Margin"          value={`${data.fcf_margin}%`} />
-            
+            <MetricCard label="FCF Growth"   value={`${data.fcf_growth}%`} />
+            <MetricCard label="Gross Margin" value={`${data.gross_margin}%`} />
+            <MetricCard label="FCF Margin"   value={`${data.fcf_margin}%`} />
           </div>
         </section>
- 
-        {/* ── Artículos ── */}
+
+        {/* Related Articles */}
         <section>
-          <p style={{
-            fontSize: 11,
-            fontWeight: 700,
-            letterSpacing: 4,
-            textTransform: 'uppercase',
-            color: C.textDim,
-            marginBottom: 12,
-          }}>
-            Related Articles
-          </p>
+          <SectionLabel>Related Articles</SectionLabel>
           {articulos.length > 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {articulos.map(a => (
-                <a
+              {articulos.map(a => ( <a
+                
                   key={a.id}
                   href={a.url}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onMouseEnter={() => setHoveredArticulo(a.id)}
+                  onMouseLeave={() => setHoveredArticulo(null)}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     gap: 12,
-                    background: C.bgCard,
+                    background: hoveredArticulo === a.id ? '#DDD5C0' : C.bgCard,
                     border: `1px solid ${C.border}`,
                     borderRadius: 10,
                     padding: '14px 20px',
@@ -308,8 +301,6 @@ export default function Empresa() {
                     fontWeight: 600,
                     transition: 'background 0.15s',
                   }}
-                  onMouseEnter={e => (e.currentTarget.style.background = '#DDD5C0')}
-                  onMouseLeave={e => (e.currentTarget.style.background = C.bgCard)}
                 >
                   <span>{a.titulo}</span>
                   <span style={{ color: C.textDim, fontSize: 12, whiteSpace: 'nowrap' }}>→</span>
@@ -317,10 +308,10 @@ export default function Empresa() {
               ))}
             </div>
           ) : (
-            <p style={{ color: C.textDim, fontSize: 14 }}>No hay artículos disponibles.</p>
+            <p style={{ color: C.textDim, fontSize: 14 }}>No articles available.</p>
           )}
         </section>
- 
+
       </main>
     </div>
   )

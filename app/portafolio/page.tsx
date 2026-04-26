@@ -263,7 +263,7 @@ export default function Portafolio() {
             style={{
               border: `1px solid ${C.border}`,
               borderRadius: 12,
-              overflow: 'hidden',
+              overflow: 'clip',
               background: C.bgCard,
             }}
           >
