@@ -10,7 +10,7 @@ const dmSans = DM_Sans({
 
 export const metadata: Metadata = {
   title: "Mexican Investor",
-  description: "Análisis de small caps internacionales",
+  description: "Small-cap analysis and my portfolio",
 };
 
 export default function RootLayout({
