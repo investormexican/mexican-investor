@@ -376,7 +376,7 @@ export default function SmallCaps() {
                       return (
                         <tr
                           key={e.id}
-                          onClick={() => router.push('/empresa/' + e.ticker)}
+                          onClick={() => router.push('/stock/' + e.ticker)}
                           onMouseEnter={() => setHoveredId(e.id)}
                           onMouseLeave={() => setHoveredId(null)}
                           style={{ background: rowBg, cursor: 'pointer', transition: 'background 0.15s' }}

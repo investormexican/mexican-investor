@@ -67,8 +67,8 @@ export default function Navbar() {
           <div style={{ display: 'flex', gap: 32 }}>
             {[
               { href: '/',           label: 'Home'             },
-              { href: '/small-caps', label: 'Investment Ideas' },
-              { href: '/portafolio', label: 'Portfolio'         },
+              { href: '/investment-ideas', label: 'Investment Ideas' },
+              { href: '/portfolio', label: 'Portfolio'         },
             ].map(({ href, label }) => (
               <Link
                 key={href}
@@ -137,8 +137,8 @@ export default function Navbar() {
         }}>
           {[
             { href: '/',           label: 'Home'             },
-            { href: '/small-caps', label: 'Investment Ideas' },
-            { href: '/portafolio', label: 'Portfolio'         },
+            { href: '/investment-ideas', label: 'Investment Ideas' },
+            { href: '/portfolio', label: 'Portfolio'         },
           ].map(({ href, label }) => (
             <Link
               key={href}

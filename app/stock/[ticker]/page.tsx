@@ -438,7 +438,7 @@ export default function Empresa() {
       }}>
  
         {/* Back link */}
-        <Link href="/small-caps" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: 32, color: C.textDim, textDecoration: 'none', fontSize: 13, fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase' }}>
+        <Link href="/investment-ideas" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: 32, color: C.textDim, textDecoration: 'none', fontSize: 13, fontWeight: 600, letterSpacing: 1, textTransform: 'uppercase' }}>
           ← Back to Investment Ideas
         </Link>
  
