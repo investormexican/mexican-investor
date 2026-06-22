@@ -68,17 +68,15 @@ async function getExchangeRates(): Promise<Record<string, number>> {
   return Object.fromEntries(results)
 }
  
-/* ── Strategy badge ──────────────────────────────────────────── */
-// Valores esperados en Supabase: "Core", "Trade", "Speculative"
-// (si tu columna se llama 'conviccion', puedes renombrarla a 'estrategia'
-//  en Supabase o dejarlo igual — el badge lee e.conviccion o e.estrategia
-//  según lo que uses abajo en la tabla)
-function StrategyBadge({ value }: { value: string }) {
+/* ── Conviction badge ──────────────────────────────────────────── */
+// Valores esperados en Supabase: "High", "Medium", "Low"
+
+function ConvictionBadge({ value }: { value: string }) {
   const v = (value ?? '').toLowerCase()
   const map: Record<string, { color: string; bg: string; label: string }> = {
-    core:        { color: C.green,  bg: C.greenBg,  label: 'Core'        },
-    trade:       { color: C.yellow, bg: C.yellowBg, label: 'Trade'       },
-    speculative: { color: C.red,    bg: C.redBg,    label: 'Speculative' },
+    core:        { color: C.green,  bg: C.greenBg,  label: 'High'        },
+    trade:       { color: C.yellow, bg: C.yellowBg, label: 'Medium'       },
+    speculative: { color: C.red,    bg: C.redBg,    label: 'Low' },
   }
   const s = map[v] ?? { color: C.neutral, bg: 'transparent', label: value ?? '—' }
   return (
@@ -281,7 +279,7 @@ export default function Portafolio() {
                         { label: 'Sector'                       },
                         { label: 'Cost Basis', align: 'right'  },
                         { label: 'Return',     align: 'right'  },
-                        { label: 'Strategy',   align: 'center' },
+                        { label: 'Conviction',   align: 'center' },
                       ] as { label: string; align?: string }[]).map(({ label, align }) => (
                         <th key={label} style={{
                           padding: '14px 16px',
@@ -337,10 +335,10 @@ export default function Portafolio() {
                           }}>
                             {rend != null ? (rend > 0 ? '+' : '') + rend.toFixed(2) + '%' : '—'}
                           </td>
-                          {/* Strategy — lee e.conviccion; cámbialo a e.estrategia
+                          {/* Conviction — lee e.conviccion;
                               si renombras la columna en Supabase */}
                           <td style={{ padding: '13px 16px', textAlign: 'center', borderBottom: `1px solid ${C.border}` }}>
-                            <StrategyBadge value={e.conviccion} />
+                            <ConvictionBadge value={e.conviccion} />
                           </td>
                         </tr>
                       )
