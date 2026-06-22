@@ -74,9 +74,9 @@ async function getExchangeRates(): Promise<Record<string, number>> {
 function ConvictionBadge({ value }: { value: string }) {
   const v = (value ?? '').toLowerCase()
   const map: Record<string, { color: string; bg: string; label: string }> = {
-    core:        { color: C.green,  bg: C.greenBg,  label: 'High'        },
-    trade:       { color: C.yellow, bg: C.yellowBg, label: 'Medium'       },
-    speculative: { color: C.red,    bg: C.redBg,    label: 'Low' },
+    high:        { color: C.green,  bg: C.greenBg,  label: 'High'        },
+    medium:       { color: C.yellow, bg: C.yellowBg, label: 'Medium'       },
+    low: { color: C.red,    bg: C.redBg,    label: 'Low' },
   }
   const s = map[v] ?? { color: C.neutral, bg: 'transparent', label: value ?? '—' }
   return (
