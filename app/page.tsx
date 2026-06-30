@@ -215,7 +215,7 @@ export default function Home() {
           flexDirection: isMobile ? 'column' : 'row',
           alignItems: 'center', marginBottom: 20,
         }}>
-          <Link href="/small-caps" style={{
+          <Link href="/investment-ideas" style={{
             padding: '12px 28px',
             background: C.accent, color: '#EEE7D7',
             fontFamily: C.sans, fontSize: isMobile ? 13 : 15,
@@ -226,7 +226,7 @@ export default function Home() {
           }}>
             Investment Ideas
           </Link>
-          <Link href="/portafolio" style={{
+          <Link href="/portfolio" style={{
             padding: '12px 28px',
             background: 'transparent', color: C.text,
             fontFamily: C.sans, fontSize: isMobile ? 13 : 15,
